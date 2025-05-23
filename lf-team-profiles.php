@@ -223,7 +223,6 @@ class LF_Team_Profiles {
             
             // Include all content for SEO but hidden initially
             $output .= '<div class="lf-team-popover-content" aria-hidden="true">';
-            $output .= '<div class="lf-team-popover-inner">';
             $output .= '<img src="' . esc_url($photo_url) . '" alt="' . esc_attr($name) . '" class="lf-team-popover-photo" loading="lazy">';
             $output .= '<h3>' . esc_html($name) . '</h3>';
             
@@ -238,7 +237,6 @@ class LF_Team_Profiles {
                 $output .= '</a>';
             }
             
-            $output .= '</div>';
             $output .= '</div>';
             
             $output .= '</div>';
@@ -283,6 +281,7 @@ class LF_Team_Profiles {
             /* Optimize rendering performance */
             contain: layout style paint;
             content-visibility: auto;
+            position: relative; /* Added for popover positioning */
         }
         .lf-team-member:hover { transform: translateY(-5px); }
         .lf-team-photo-wrapper {
@@ -310,88 +309,69 @@ class LF_Team_Profiles {
             margin: 0;
             color: #333;
         }
-        /* Hidden popover content for SEO */
+        /* Popover content styles */
         .lf-team-popover-content {
+            display: none; /* Hidden by default */
             position: absolute;
-            left: -9999px;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-        }
-        /* Actual popover styles */
-        .lf-team-popover {
-            position: fixed;
+            top: 100%; /* Position below the team member */
+            left: 50%;
+            transform: translateX(-50%); /* Center the popover */
             background: white;
             border-radius: 8px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            padding: 30px;
-            max-width: 500px;
-            max-height: 80vh;
-            overflow-y: auto;
-            z-index: 9999;
-            display: none;
+            padding: 20px; /* Adjusted padding */
+            max-width: 300px; /* Adjusted max-width */
+            z-index: 10; /* Ensure it's above other content */
+            text-align: center; /* Center content inside popover */
             opacity: 0;
-            transform: scale(0.95);
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none; /* Allow clicks on elements below */
         }
-        .lf-team-popover.show {
+
+        .lf-team-member:hover .lf-team-popover-content {
+            display: block; /* Show on hover */
             opacity: 1;
-            transform: scale(1);
+            transform: translateX(-50%) translateY(10px); /* Add a slight translateY for effect */
+            pointer-events: auto; /* Enable clicks inside popover */
         }
-        .lf-team-popover-inner { text-align: center; }
-        .lf-team-popover-photo {
-            width: 120px;
-            height: 120px;
+
+        .lf-team-popover-content img { /* Style for photo inside popover */
+            width: 80px; /* Adjusted photo size */
+            height: 80px;
             border-radius: 50%;
             object-fit: cover;
-            margin-bottom: 20px;
+            margin-bottom: 10px; /* Adjusted margin */
         }
-        .lf-team-bio {
+
+        .lf-team-popover-content h3 { /* Style for name inside popover */
+            font-size: 16px; /* Adjusted font size */
+            margin: 0 0 10px; /* Adjusted margin */
+            color: #333;
+        }
+
+        .lf-team-popover-content .lf-team-bio { /* Style for bio inside popover */
             text-align: left;
-            margin: 20px 0;
-            line-height: 1.6;
+            margin: 10px 0; /* Adjusted margin */
+            line-height: 1.5; /* Adjusted line height */
+            font-size: 14px; /* Adjusted font size */
         }
-        .lf-team-linkedin {
+
+        .lf-team-popover-content .lf-team-linkedin { /* Style for linkedin inside popover */
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 5px; /* Adjusted gap */
             color: #0077b5;
             text-decoration: none;
             font-weight: 500;
-            margin-top: 20px;
+            margin-top: 10px; /* Adjusted margin */
+            font-size: 14px; /* Adjusted font size */
             transition: color 0.3s ease;
         }
-        .lf-team-linkedin:hover { color: #005885; }
-        .lf-team-popover-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            background: #f0f0f0;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            line-height: 1;
-            transition: background 0.2s ease;
+
+        .lf-team-popover-content .lf-team-linkedin:hover {
+            color: #005885;
         }
-        .lf-team-popover-close:hover { background: #e0e0e0; }
-        .lf-team-popover-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 9998;
-            display: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        .lf-team-popover-overlay.show {
-            opacity: 1;
-        }
+
         /* Loading skeleton */
         .lf-team-photo-wrapper.loading {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -403,153 +383,6 @@ class LF_Team_Profiles {
             100% { background-position: -200% 0; }
         }
         </style>
-        
-        <script>
-        (function() {
-            if (typeof wpTeamProfilesInit !== 'undefined') return;
-            window.wpTeamProfilesInit = true;
-            
-            // Wait for DOM to be ready
-            function ready(fn) {
-                if (document.readyState !== 'loading') {
-                    fn();
-                } else {
-                    document.addEventListener('DOMContentLoaded', fn);
-                }
-            }
-            
-            ready(function() {
-                // Lazy load images with Intersection Observer
-                var imageObserver = null;
-                if ('IntersectionObserver' in window) {
-                    imageObserver = new IntersectionObserver(function(entries, observer) {
-                        entries.forEach(function(entry) {
-                            if (entry.isIntersecting) {
-                                var img = entry.target;
-                                var wrapper = img.closest('.lf-team-photo-wrapper');
-                                if (wrapper) wrapper.classList.add('loading');
-                                
-                                // Load high-res image
-                                var highResSrc = img.getAttribute('data-src');
-                                if (highResSrc && highResSrc !== img.src) {
-                                    var tempImg = new Image();
-                                    tempImg.onload = function() {
-                                        img.src = highResSrc;
-                                        img.classList.add('loaded');
-                                        if (wrapper) wrapper.classList.remove('loading');
-                                    };
-                                    tempImg.src = highResSrc;
-                                } else {
-                                    img.classList.add('loaded');
-                                    if (wrapper) wrapper.classList.remove('loading');
-                                }
-                                
-                                observer.unobserve(img);
-                            }
-                        });
-                    }, {
-                        rootMargin: '50px'
-                    });
-                    
-                    // Observe all team photos
-                    document.querySelectorAll('.lf-team-photo').forEach(function(img) {
-                        imageObserver.observe(img);
-                    });
-                } else {
-                    // Fallback for browsers without Intersection Observer
-                    document.querySelectorAll('.lf-team-photo').forEach(function(img) {
-                        img.classList.add('loaded');
-                    });
-                }
-                
-                // Create popover elements if not exists
-                if (!document.querySelector('.lf-team-popover')) {
-                    document.body.insertAdjacentHTML('beforeend', 
-                        '<div class="lf-team-popover-overlay"></div>' +
-                        '<div class="lf-team-popover">' +
-                        '<button class="lf-team-popover-close" aria-label="Close">&times;</button>' +
-                        '<div class="lf-team-popover-content"></div>' +
-                        '</div>'
-                    );
-                }
-                
-                var popover = document.querySelector('.lf-team-popover');
-                var overlay = document.querySelector('.lf-team-popover-overlay');
-                var content = document.querySelector('.lf-team-popover-content');
-                var closeBtn = document.querySelector('.lf-team-popover-close');
-                var activeElement = null;
-                
-                // Handle member clicks with event delegation
-                document.addEventListener('click', function(e) {
-                    var member = e.target.closest('.lf-team-member');
-                    if (member && !e.target.closest('.lf-team-popover')) {
-                        e.preventDefault();
-                        activeElement = document.activeElement;
-                        
-                        var popoverContent = member.querySelector('.lf-team-popover-content');
-                        if (popoverContent) {
-                            // Clone content to popover
-                            content.innerHTML = popoverContent.querySelector('.lf-team-popover-inner').innerHTML;
-                            
-                            // Show overlay and popover
-                            overlay.style.display = 'block';
-                            popover.style.display = 'block';
-                            
-                            // Force reflow before adding show class
-                            void popover.offsetHeight;
-                            
-                            requestAnimationFrame(function() {
-                                overlay.classList.add('show');
-                                popover.classList.add('show');
-                                
-                                // Position popover in center
-                                var rect = popover.getBoundingClientRect();
-                                popover.style.top = Math.max(20, (window.innerHeight - rect.height) / 2) + 'px';
-                                popover.style.left = Math.max(20, (window.innerWidth - rect.width) / 2) + 'px';
-                                
-                                // Focus management for accessibility
-                                closeBtn.focus();
-                            });
-                        }
-                    }
-                });
-                
-                // Close popover function
-                function closePopover() {
-                    popover.classList.remove('show');
-                    overlay.classList.remove('show');
-                    
-                    setTimeout(function() {
-                        popover.style.display = 'none';
-                        overlay.style.display = 'none';
-                        content.innerHTML = '';
-                        
-                        // Restore focus
-                        if (activeElement) {
-                            activeElement.focus();
-                            activeElement = null;
-                        }
-                    }, 200);
-                }
-                
-                // Close handlers
-                closeBtn.addEventListener('click', closePopover);
-                overlay.addEventListener('click', closePopover);
-                
-                // Keyboard navigation
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape' && popover.style.display === 'block') {
-                        closePopover();
-                    }
-                });
-                
-                // Prevent body scroll when popover is open
-                overlay.addEventListener('wheel', function(e) {
-                    e.preventDefault();
-                });
-            });
-        })();
-        </script>
         <?php
     }
 }
