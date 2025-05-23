@@ -119,6 +119,13 @@ class LF_Team_Profiles {
                     'library' => 'all',
                 ),
                 array(
+                    'key' => 'field_team_job_title',
+                    'label' => 'Job Title',
+                    'name' => 'team_job_title',
+                    'type' => 'text',
+                    'placeholder' => 'e.g. Country Coordinator',
+                ),
+                array(
                     'key' => 'field_team_bio',
                     'label' => 'Biography',
                     'name' => 'team_bio',
@@ -200,6 +207,7 @@ class LF_Team_Profiles {
             $member_id = get_the_ID();
             $name = get_the_title();
             $photo = get_field('team_photo');
+            $job_title = get_field('team_job_title');
             $bio = get_field('team_bio');
             $linkedin = get_field('team_linkedin');
             
@@ -218,7 +226,18 @@ class LF_Team_Profiles {
             $output .= '<div class="lf-team-photo-wrapper">';
             $output .= '<img src="' . esc_url($photo_url) . '" alt="' . esc_attr($name) . '" class="lf-team-photo">';
             $output .= '</div>';
-            $output .= '<h3 class="lf-team-name">' . esc_html($name) . '</h3>';
+            $output .= '<div class="lf-team-name-wrapper">';
+            $output .= '<h3 class="lf-team-name">' . esc_html($name);
+            if ($linkedin) {
+                $output .= ' <a href="' . esc_url($linkedin) . '" target="_blank" rel="noopener noreferrer" class="lf-team-linkedin-icon" onclick="event.stopPropagation();">';
+                $output .= '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>';
+                $output .= '</a>';
+            }
+            $output .= '</h3>';
+            if ($job_title) {
+                $output .= '<p class="lf-team-job-title">' . esc_html($job_title) . '</p>';
+            }
+            $output .= '</div>';
             $output .= '</button>';
             $output .= '</div>';
             
@@ -228,15 +247,18 @@ class LF_Team_Profiles {
             $output .= '<button class="lf-team-popover-close" popovertarget="team-popover-' . $member_id . '" popovertargetaction="hide">&times;</button>';
             $output .= '<img src="' . esc_url($photo_url) . '" alt="' . esc_attr($name) . '" class="lf-team-popover-photo">';
             $output .= '<h3>' . esc_html($name) . '</h3>';
+            if ($job_title) {
+                $output .= '<p class="lf-team-popover-job-title">' . esc_html($job_title) . '</p>';
+            }
             
             if ($bio) {
                 $output .= '<div class="lf-team-bio">' . wp_kses_post($bio) . '</div>';
             }
             
             if ($linkedin) {
-                $output .= '<a href="' . esc_url($linkedin) . '" target="_blank" rel="noopener noreferrer" class="lf-team-linkedin">';
+                $output .= '<a href="' . esc_url($linkedin) . '" target="_blank" rel="noopener noreferrer nofollow" class="lf-team-linkedin">';
                 $output .= '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>';
-                $output .= ' Connect on LinkedIn';
+                $output .= ' Connect with '. esc_html($name) . ' on LinkedIn';
                 $output .= '</a>';
             }
             
@@ -306,10 +328,32 @@ class LF_Team_Profiles {
         .lf-team-member-button:hover .lf-team-photo { 
             transform: scale(1.1); 
         }
+        .lf-team-name-wrapper {
+            margin-top: 10px;
+        }
         .lf-team-name {
             font-size: 18px;
-            margin: 0;
+            margin: 0 0 5px 0;
             color: #333;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .lf-team-linkedin-icon {
+            display: inline-flex;
+            align-items: center;
+            color: #0077b5;
+            transition: color 0.3s ease;
+        }
+        .lf-team-linkedin-icon:hover {
+            color: #005885;
+        }
+        .lf-team-job-title {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+            font-weight: normal;
         }
         
         /* Popover styles */
@@ -350,6 +394,12 @@ class LF_Team_Profiles {
             border-radius: 50%;
             object-fit: cover;
             margin-bottom: 20px;
+        }
+        .lf-team-popover-job-title {
+            font-size: 16px;
+            color: #666;
+            margin: -10px 0 20px 0;
+            font-weight: normal;
         }
         .lf-team-bio {
             text-align: left;
