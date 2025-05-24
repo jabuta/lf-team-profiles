@@ -192,14 +192,14 @@ class LF_Team_Profiles {
         if ($has_shortcode || $has_block) {
             wp_enqueue_style(
                 'lf-team-profiles',
-                LF_TEAM_PROFILES_URL . 'assets/css/lf-team-profiles.css',
+                LF_TEAM_PROFILES_URL . 'assets/css/lf-team-profiles.min.css',
                 array(),
                 LF_TEAM_PROFILES_VERSION
             );
             
             wp_enqueue_script(
                 'lf-team-profiles',
-                LF_TEAM_PROFILES_URL . 'assets/js/lf-team-profiles.js',
+                LF_TEAM_PROFILES_URL . 'assets/js/lf-team-profiles.min.js',
                 array(),
                 LF_TEAM_PROFILES_VERSION,
                 true
@@ -210,7 +210,7 @@ class LF_Team_Profiles {
     public function enqueue_block_editor_assets() {
         wp_enqueue_script(
             'lf-team-profiles-block',
-            LF_TEAM_PROFILES_URL . 'blocks/team-profiles-block.js',
+            LF_TEAM_PROFILES_URL . 'blocks/team-profiles-block.min.js',
             array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components'),
             LF_TEAM_PROFILES_VERSION
         );
@@ -218,7 +218,7 @@ class LF_Team_Profiles {
         // Enqueue CSS in editor
         wp_enqueue_style(
             'lf-team-profiles',
-            LF_TEAM_PROFILES_URL . 'assets/css/lf-team-profiles.css',
+            LF_TEAM_PROFILES_URL . 'assets/css/lf-team-profiles.min.css',
             array(),
             LF_TEAM_PROFILES_VERSION
         );
