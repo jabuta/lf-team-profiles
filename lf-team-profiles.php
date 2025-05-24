@@ -3,7 +3,7 @@
  * Plugin Name: LF Team Profiles
  * Plugin URI: https://github.com/yourusername/lf-team-profiles
  * Description: Display team members with ACF, department filtering, and native HTML popovers
- * Version: 2.0.0
+ * Version: 2.1.0
  * Author: Your Name
  * License: GPL v2 or later
  * Text Domain: lf-team-profiles
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('LF_TEAM_PROFILES_VERSION', '2.0.0');
+define('LF_TEAM_PROFILES_VERSION', '2.1.0');
 define('LF_TEAM_PROFILES_URL', plugin_dir_url(__FILE__));
 define('LF_TEAM_PROFILES_PATH', plugin_dir_path(__FILE__));
 
@@ -25,7 +25,6 @@ define('LF_TEAM_PROFILES_PATH', plugin_dir_path(__FILE__));
 class LF_Team_Profiles {
     
     private static $instance = null;
-    private $shortcode_used = false;
     
     public static function get_instance() {
         if (null === self::$instance) {
@@ -38,9 +37,12 @@ class LF_Team_Profiles {
         add_action('init', array($this, 'init'));
         add_shortcode('team_profiles', array($this, 'render_shortcode'));
         
-        // Check if shortcode is used before rendering
-        add_filter('the_content', array($this, 'check_for_shortcode'), 5);
-        add_action('wp_footer', array($this, 'maybe_print_inline_assets'));
+        // Enqueue assets
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_assets'));
+        add_action('enqueue_block_editor_assets', array($this, 'enqueue_block_editor_assets'));
+        
+        // Register Gutenberg block
+        add_action('init', array($this, 'register_block'));
     }
     
     public function init() {
@@ -70,10 +72,11 @@ class LF_Team_Profiles {
             'show_in_menu'        => true,
             'menu_position'       => 25,
             'menu_icon'           => 'dashicons-groups',
-            'supports'            => array('title', 'thumbnail'),
+            'supports'            => array('title', 'thumbnail', 'page-attributes'),
             'has_archive'         => false,
             'publicly_queryable'  => false,
             'capability_type'     => 'post',
+            'show_in_rest'        => true, // Enable for Gutenberg
         ));
     }
     
@@ -97,6 +100,7 @@ class LF_Team_Profiles {
             'show_admin_column' => true,
             'show_in_nav_menus' => false,
             'rewrite'           => false,
+            'show_in_rest'      => true, // Enable for Gutenberg
         ));
     }
     
@@ -109,6 +113,17 @@ class LF_Team_Profiles {
             'key' => 'group_team_member_details',
             'title' => 'Team Member Details',
             'fields' => array(
+                array(
+                    'key' => 'field_team_priority',
+                    'label' => 'Priority',
+                    'name' => 'team_priority',
+                    'type' => 'number',
+                    'instructions' => 'Lower numbers appear first. Default is 0.',
+                    'default_value' => 0,
+                    'min' => '',
+                    'max' => '',
+                    'step' => 1,
+                ),
                 array(
                     'key' => 'field_team_photo',
                     'label' => 'Photo',
@@ -159,16 +174,85 @@ class LF_Team_Profiles {
         ));
     }
     
-    public function check_for_shortcode($content) {
-        if (has_shortcode($content, 'team_profiles')) {
-            $this->shortcode_used = true;
+    public function enqueue_frontend_assets() {
+        if (is_admin()) {
+            return;
         }
-        return $content;
+        
+        // Check if we're on a page that might use the shortcode or block
+        global $post;
+        if (!$post) {
+            return;
+        }
+        
+        $content = $post->post_content;
+        $has_shortcode = has_shortcode($content, 'team_profiles');
+        $has_block = has_block('lf-team-profiles/team-profiles', $post);
+        
+        if ($has_shortcode || $has_block) {
+            wp_enqueue_style(
+                'lf-team-profiles',
+                LF_TEAM_PROFILES_URL . 'assets/css/lf-team-profiles.css',
+                array(),
+                LF_TEAM_PROFILES_VERSION
+            );
+            
+            wp_enqueue_script(
+                'lf-team-profiles',
+                LF_TEAM_PROFILES_URL . 'assets/js/lf-team-profiles.js',
+                array(),
+                LF_TEAM_PROFILES_VERSION,
+                true
+            );
+        }
+    }
+    
+    public function enqueue_block_editor_assets() {
+        wp_enqueue_script(
+            'lf-team-profiles-block',
+            LF_TEAM_PROFILES_URL . 'blocks/team-profiles-block.js',
+            array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components'),
+            LF_TEAM_PROFILES_VERSION
+        );
+        
+        // Enqueue CSS in editor
+        wp_enqueue_style(
+            'lf-team-profiles',
+            LF_TEAM_PROFILES_URL . 'assets/css/lf-team-profiles.css',
+            array(),
+            LF_TEAM_PROFILES_VERSION
+        );
+    }
+    
+    public function register_block() {
+        register_block_type('lf-team-profiles/team-profiles', array(
+            'render_callback' => array($this, 'render_block'),
+            'attributes' => array(
+                'department' => array(
+                    'type' => 'string',
+                    'default' => '',
+                ),
+                'columns' => array(
+                    'type' => 'string',
+                    'default' => '4',
+                ),
+                'orderby' => array(
+                    'type' => 'string',
+                    'default' => 'menu_order',
+                ),
+                'order' => array(
+                    'type' => 'string',
+                    'default' => 'ASC',
+                ),
+            ),
+        ));
+    }
+    
+    public function render_block($attributes) {
+        return $this->render_shortcode($attributes);
     }
     
     public function render_shortcode($atts) {
-        $this->shortcode_used = true;
-        
         $atts = shortcode_atts(array(
             'department' => '',
             'columns' => '4',
@@ -182,6 +266,15 @@ class LF_Team_Profiles {
             'orderby' => $atts['orderby'],
             'order' => $atts['order'],
         );
+        
+        // Handle priority ordering
+        if ($atts['orderby'] === 'meta_value_num') {
+            $args['meta_key'] = 'team_priority';
+            $args['orderby'] = array(
+                'meta_value_num' => $atts['order'],
+                'title' => 'ASC'
+            );
+        }
         
         if (!empty($atts['department'])) {
             $args['tax_query'] = array(
@@ -227,7 +320,13 @@ class LF_Team_Profiles {
             $output .= '<img src="' . esc_url($photo_url) . '" alt="' . esc_attr($name) . '" class="lf-team-photo">';
             $output .= '</div>';
             $output .= '<div class="lf-team-name-wrapper">';
-            $output .= '<h3 class="lf-team-name">' . esc_html($name) . '</h3>';
+            $output .= '<h3 class="lf-team-name">' . esc_html($name);
+            if ($linkedin) {
+                $output .= ' <a href="' . esc_url($linkedin) . '" target="_blank" rel="noopener noreferrer" class="lf-team-linkedin-icon" onclick="event.stopPropagation();">';
+                $output .= '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>';
+                $output .= '</a>';
+            }
+            $output .= '</h3>';
             if ($job_title) {
                 $output .= '<p class="lf-team-job-title">' . esc_html($job_title) . '</p>';
             }
@@ -266,252 +365,6 @@ class LF_Team_Profiles {
         
         return $output;
     }
-    
-    public function maybe_print_inline_assets() {
-        if (!$this->shortcode_used) {
-            return;
-        }
-        
-        ?>
-        <style>
-        .lf-team-profiles-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 30px;
-            margin: 40px 0;
-        }
-        .lf-team-profiles-grid[data-columns="2"] { grid-template-columns: repeat(2, 1fr); }
-        .lf-team-profiles-grid[data-columns="3"] { grid-template-columns: repeat(3, 1fr); }
-        .lf-team-profiles-grid[data-columns="5"] { grid-template-columns: repeat(5, 1fr); }
-        .lf-team-profiles-grid[data-columns="6"] { grid-template-columns: repeat(6, 1fr); }
-        @media (max-width: 768px) {
-            .lf-team-profiles-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
-        }
-        @media (max-width: 480px) {
-            .lf-team-profiles-grid { grid-template-columns: 1fr; }
-        }
-        .lf-team-member {
-            text-align: center;
-        }
-        .lf-team-member-button {
-            background: none;
-            border: none;
-            padding: 0;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.3s ease;
-        }
-        .lf-team-member-button:hover { 
-            transform: translateY(-5px); 
-        }
-        .lf-team-photo-wrapper {
-            position: relative;
-            overflow: hidden;
-            border-radius: 50%;
-            margin: 0 auto 15px;
-            width: 150px;
-            height: 150px;
-            background: #f0f0f0;
-        }
-        .lf-team-photo {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-        }
-        .lf-team-member-button:hover .lf-team-photo { 
-            transform: scale(1.1); 
-        }
-        .lf-team-name-wrapper {
-            margin-top: 10px;
-        }
-        .lf-team-name {
-            font-size: 18px;
-            margin: 0 0 5px 0;
-            color: #333;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .lf-team-linkedin-icon {
-            display: inline-flex;
-            align-items: center;
-            color: #0077b5;
-            transition: color 0.3s ease;
-        }
-        .lf-team-linkedin-icon:hover {
-            color: #005885;
-        }
-        .lf-team-job-title {
-            font-size: 14px;
-            color: #666;
-            margin: 0;
-            font-weight: normal;
-        }
-        
-        /* Popover styles */
-        .lf-team-popover {
-            position: fixed;
-            inset: 0;
-            width: fit-content;
-            height: fit-content;
-            margin: auto;
-            border: none;
-            padding: 0;
-            overflow: visible;
-            background: transparent;
-            max-width: 90vw;
-            max-height: 90vh;
-        }
-        
-        .lf-team-popover::backdrop {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(3px);
-        }
-        
-        .lf-team-popover-inner {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            padding: 30px;
-            max-width: 500px;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-            text-align: center;
-        }
-        
-        .lf-team-popover-photo {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-bottom: 20px;
-        }
-        .lf-team-popover-job-title {
-            font-size: 16px;
-            color: #666;
-            margin: -10px 0 20px 0;
-            font-weight: normal;
-        }
-        .lf-team-bio {
-            text-align: left;
-            margin: 20px 0;
-            line-height: 1.6;
-        }
-        .lf-team-linkedin {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #0077b5;
-            text-decoration: none;
-            font-weight: 500;
-            margin-top: 20px;
-            transition: color 0.3s ease;
-        }
-        .lf-team-linkedin:hover { 
-            color: #005885; 
-        }
-        .lf-team-popover-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            background: #f0f0f0;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            line-height: 1;
-            transition: background 0.2s ease;
-        }
-        .lf-team-popover-close:hover { 
-            background: #e0e0e0; 
-        }
-        
-        /* Popover animation */
-        .lf-team-popover {
-            animation: fadeIn 0.2s ease-out;
-        }
-        
-        .lf-team-popover:popover-open {
-            display: block;
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-        
-        /* Fallback for browsers without popover support */
-        @supports not (selector(:popover-open)) {
-            .lf-team-popover {
-                display: none;
-            }
-        }
-        </style>
-        
-        <script>
-        // Minimal JavaScript for browsers that don't support popover API
-        (function() {
-            // Check if popover API is supported
-            if (!HTMLElement.prototype.hasOwnProperty('popover')) {
-                console.log('Popover API not supported, implementing fallback');
-                
-                document.addEventListener('DOMContentLoaded', function() {
-                    // Simple fallback implementation
-                    var buttons = document.querySelectorAll('[popovertarget]');
-                    
-                    buttons.forEach(function(button) {
-                        button.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            var targetId = button.getAttribute('popovertarget');
-                            var popover = document.getElementById(targetId);
-                            
-                            if (popover) {
-                                // Toggle visibility
-                                if (popover.style.display === 'block') {
-                                    popover.style.display = 'none';
-                                } else {
-                                    // Hide all other popovers
-                                    document.querySelectorAll('.lf-team-popover').forEach(function(p) {
-                                        p.style.display = 'none';
-                                    });
-                                    popover.style.display = 'block';
-                                }
-                            }
-                        });
-                    });
-                    
-                    // Close on backdrop click
-                    document.addEventListener('click', function(e) {
-                        if (e.target.classList.contains('lf-team-popover')) {
-                            e.target.style.display = 'none';
-                        }
-                    });
-                    
-                    // Close on escape key
-                    document.addEventListener('keydown', function(e) {
-                        if (e.key === 'Escape') {
-                            document.querySelectorAll('.lf-team-popover').forEach(function(p) {
-                                p.style.display = 'none';
-                            });
-                        }
-                    });
-                });
-            }
-        })();
-        </script>
-        <?php
-    }
 }
 
 // Initialize plugin
@@ -530,16 +383,28 @@ register_deactivation_hook(__FILE__, function() {
 /**
  * USAGE:
  * 
- * Shortcode: [team_profiles]
+ * 1. SHORTCODE: [team_profiles]
  * 
  * Parameters:
- * - department: Filter by department slug(s)
+ * - department: Filter by department slug(s), comma-separated
  * - columns: Number of columns (2-6, default: 4)
- * - orderby: Order by field (title, date, menu_order)
+ * - orderby: Order by field (title, date, menu_order, meta_value_num for priority)
  * - order: ASC or DESC
  * 
  * Examples:
  * [team_profiles]
  * [team_profiles department="marketing"]
  * [team_profiles department="marketing,sales" columns="3"]
+ * [team_profiles orderby="meta_value_num" order="ASC"] // Sort by priority
+ * 
+ * 2. GUTENBERG BLOCK: Team Profiles
+ * 
+ * Available in the block editor under Widgets category.
+ * Configure department, columns, and sorting options in the block settings.
+ * 
+ * 3. PRIORITY SORTING:
+ * 
+ * Each team member has a "Priority" field (integer).
+ * Lower numbers appear first when sorting by priority.
+ * Use orderby="meta_value_num" to sort by priority.
  */
