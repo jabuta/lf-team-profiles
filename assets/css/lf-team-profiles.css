@@ -73,6 +73,12 @@
     margin: 0;
     font-weight: normal;
 }
+.lf-team-team {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+    font-weight: normal;
+}
 
 /* Popover styles */
 .lf-team-popover {
@@ -117,6 +123,12 @@
     font-size: 16px;
     color: #666;
     margin: -10px 0 20px 0;
+    font-weight: normal;
+}
+.lf-team-popover-team {
+    font-size: 16px;
+    color: #666;
+    margin: -20px 0 20px 0;
     font-weight: normal;
 }
 .lf-team-bio {
