@@ -43,6 +43,9 @@ class LF_Team_Profiles {
         
         // Register Gutenberg block
         add_action('init', array($this, 'register_block'));
+        
+        // Add REST API support for ACF fields
+        add_action('rest_api_init', array($this, 'add_acf_to_rest_api'));
     }
     
     public function init() {
@@ -218,7 +221,7 @@ class LF_Team_Profiles {
         wp_enqueue_script(
             'lf-team-profiles-block',
             LF_TEAM_PROFILES_URL . 'blocks/team-profiles-block.js',
-            array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components'),
+            array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-server-side-render', 'wp-editor', 'wp-i18n'),
             LF_TEAM_PROFILES_VERSION
         );
         
@@ -229,11 +232,19 @@ class LF_Team_Profiles {
             array(),
             LF_TEAM_PROFILES_VERSION
         );
+        
+        // Localize script for translations
+        if (function_exists('wp_set_script_translations')) {
+            wp_set_script_translations('lf-team-profiles-block', 'lf-team-profiles');
+        }
     }
     
     public function register_block() {
         register_block_type('lf-team-profiles/team-profiles', array(
             'render_callback' => array($this, 'render_block'),
+            'editor_script' => 'lf-team-profiles-block',
+            'editor_style' => 'lf-team-profiles',
+            'style' => 'lf-team-profiles',
             'attributes' => array(
                 'department' => array(
                     'type' => 'string',
@@ -380,6 +391,30 @@ class LF_Team_Profiles {
         wp_reset_postdata();
         
         return $output;
+    }
+    
+    /**
+     * Add ACF fields to REST API for block editor support
+     */
+    public function add_acf_to_rest_api() {
+        if (!function_exists('get_field')) {
+            return;
+        }
+        
+        // Add ACF fields to team_member post type REST response
+        register_rest_field('team_member', 'acf_fields', array(
+            'get_callback' => function($post) {
+                return array(
+                    'team_priority' => get_field('team_priority', $post['id']),
+                    'team_photo' => get_field('team_photo', $post['id']),
+                    'team_job_title' => get_field('team_job_title', $post['id']),
+                    'team_team' => get_field('team_team', $post['id']),
+                    'team_bio' => get_field('team_bio', $post['id']),
+                    'team_linkedin' => get_field('team_linkedin', $post['id']),
+                );
+            },
+            'schema' => null,
+        ));
     }
 }
 
