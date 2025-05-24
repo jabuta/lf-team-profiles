@@ -4,7 +4,7 @@
  * Plugin URI: https://github.com/yourusername/lf-team-profiles
  * Description: Display team members with ACF, department filtering, and native HTML popovers
  * Version: 2.1.0
- * Author: Your Name
+ * Author: Luis Alvarez
  * License: GPL v2 or later
  * Text Domain: lf-team-profiles
  */
