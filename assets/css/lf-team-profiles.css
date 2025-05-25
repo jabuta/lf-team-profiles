@@ -105,8 +105,8 @@
     border-radius: 8px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     padding: 30px;
-    max-width: 500px;
-    max-height: 80vh;
+    max-width: 600px;
+    max-height: 85vh;
     overflow-y: auto;
     position: relative;
     text-align: center;
