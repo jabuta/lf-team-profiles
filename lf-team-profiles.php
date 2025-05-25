@@ -3,7 +3,7 @@
  * Plugin Name: LF Team Profiles
  * Plugin URI: https://github.com/jabuta/lf-team-profiles
  * Description: Display team members with ACF, department filtering, and native HTML popovers
- * Version: 2.1.0
+ * Version: 2.1.1
  * Author: Luis Alvarez
  * License: GPL v2 or later
  * Text Domain: lf-team-profiles
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('LF_TEAM_PROFILES_VERSION', '2.1.0');
+define('LF_TEAM_PROFILES_VERSION', '2.1.1');
 define('LF_TEAM_PROFILES_URL', plugin_dir_url(__FILE__));
 define('LF_TEAM_PROFILES_PATH', plugin_dir_path(__FILE__));
 
@@ -325,9 +325,26 @@ class LF_Team_Profiles {
             
             // Get photo URL
             $photo_url = '';
-            if ($photo) {
-                $photo_url = isset($photo['sizes']['medium']) ? $photo['sizes']['medium'] : $photo['url'];
-            } else {
+            if ($photo && is_array($photo)) {
+                // Check if we have the expected array structure
+                if (isset($photo['sizes']['medium'])) {
+                    $photo_url = $photo['sizes']['medium'];
+                } elseif (isset($photo['url'])) {
+                    $photo_url = $photo['url'];
+                }
+            } elseif ($photo && is_string($photo)) {
+                // If photo is a URL string
+                $photo_url = $photo;
+            } elseif ($photo && is_numeric($photo)) {
+                // If photo is an attachment ID
+                $photo_array = wp_get_attachment_image_src($photo, 'medium');
+                if ($photo_array) {
+                    $photo_url = $photo_array[0];
+                }
+            }
+            
+            // Use placeholder if no photo URL
+            if (empty($photo_url)) {
                 // Default placeholder image
                 $photo_url = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE1MCIgeT0iMTUwIiBzdHlsZT0iZmlsbDojYWFhO2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1zaXplOjE5cHg7Zm9udC1mYW1pbHk6QXJpYWwsSGVsdmV0aWNhLHNhbnMtc2VyaWY7ZG9taW5hbnQtYmFzZWxpbmU6Y2VudHJhbCI+Tm8gUGhvdG88L3RleHQ+PC9zdmc+';
             }
