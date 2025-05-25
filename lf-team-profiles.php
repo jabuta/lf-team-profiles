@@ -329,14 +329,16 @@ class LF_Team_Profiles {
                 // Check if we have the expected array structure
                 if (isset($photo['sizes']['medium'])) {
                     $photo_url = $photo['sizes']['medium'];
-                };
+                } elseif (isset($photo['url'])) {
+                    $photo_url = $photo['url'];
+                }
             } elseif ($photo && (is_numeric($photo) || (is_string($photo) && ctype_digit($photo)))) {
                 // If photo is an attachment ID (numeric or numeric string)
                 $photo_array = wp_get_attachment_image_src($photo, 'medium');
                 if ($photo_array) {
                     $photo_url = $photo_array[0];
                 }
-            } elseif ($photo && is_string($photo) && filter_var($photo, FILTER_VALIDATE_URL)) {
+            } elseif ($photo && is_string($photo) && filter_var($photo, FILTER_VALIDATE_URL)){
                 // If photo is a URL string
                 $photo_url = $photo;
             }
