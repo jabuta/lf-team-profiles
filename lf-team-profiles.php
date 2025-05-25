@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: LF Team Profiles
- * Plugin URI: https://github.com/yourusername/lf-team-profiles
+ * Plugin URI: https://github.com/jabuta/lf-team-profiles
  * Description: Display team members with ACF, department filtering, and native HTML popovers
  * Version: 2.1.0
  * Author: Luis Alvarez

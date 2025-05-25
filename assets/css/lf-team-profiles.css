@@ -52,11 +52,11 @@
 .lf-team-name {
     font-size: 18px;
     margin: 0 0 5px 0;
-    color: #333;
+    color: var(--theme-palette-color-3,#3a3a3a);
     font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 5px;  
 }
 .lf-team-linkedin-icon {
     display: inline-flex;
@@ -69,13 +69,13 @@
 }
 .lf-team-job-title {
     font-size: 14px;
-    color: #666;
+    color: var(--theme-palette-color-4,#4b4f58);
     margin: 0;
     font-weight: normal;
 }
 .lf-team-team {
     font-size: 14px;
-    color: #666;
+    color: var(--theme-palette-color-4,#4b4f58);
     margin: 0;
     font-weight: normal;
 }
@@ -121,13 +121,13 @@
 }
 .lf-team-popover-job-title {
     font-size: 16px;
-    color: #666;
+    color: var(--theme-palette-color-1,#2d3f66);
     margin: -10px 0 20px 0;
     font-weight: normal;
 }
 .lf-team-popover-team {
     font-size: 16px;
-    color: #666;
+    color: var(--theme-palette-color-1,#2d3f66);
     margin: -20px 0 20px 0;
     font-weight: normal;
 }
